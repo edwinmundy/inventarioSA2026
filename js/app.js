@@ -325,13 +325,14 @@ function iniciarSesion(event) {
     const codigoInput = document.getElementById('login-codigo').value.trim();
     const password = document.getElementById('login-password').value;
     
-    // 🔧 NUEVO: Detectar variantes de ADMIN (ADMIN, Admin, admin, admi, ADMI, etc.)
+    // 🔧 NUEVO: Detectar variantes de ADMIN (case insensitive)
     const esAdminVariante = /^admin$/i.test(codigoInput) || /^admi$/i.test(codigoInput);
     const codigo = esAdminVariante ? 'ADMIN' : codigoInput.toUpperCase();
     
-    // 🔧 NUEVO: Contraseñas válidas para admin: 63717 o 637177 (o cualquiera de 1-6 dígitos para otros)
-    const esPasswordAdminValida = password === '63717' || password === '637177' || password === 'ADMIN';
+    // 🔧 NUEVO: Contraseñas válidas para admin: 63717 o 637177
+    const esPasswordAdminValida = password === '63717' || password === '637177';
     
+    // Validación para usuarios no-admin
     if (!esAdminVariante && !/^\d{1,6}$/.test(password)) {
         document.getElementById('login-error').textContent = '❌ La contraseña debe contener entre 1 y 6 dígitos numéricos';
         document.getElementById('login-error').style.display = 'block';
@@ -341,7 +342,7 @@ function iniciarSesion(event) {
     let cajeros = obtenerDatos('cajeros');
     let cajero = cajeros.find(c => c.codigo === codigo && c.activo);
     
-    // 🔧 NUEVO: Si es admin y no existe, crearlo automáticamente
+    // 🔧 NUEVO: Si es admin y no existe en este dispositivo, crearlo automáticamente
     if (esAdminVariante && !cajero) {
         cajero = {
             id: 'admin-1',
@@ -349,22 +350,23 @@ function iniciarSesion(event) {
             rut: '0.000.000-0',
             turno: 'ADMIN',
             codigo: 'ADMIN',
-            password: '637177', // Password por defecto
+            password: '637177',
             cargo: 'Corporativo',
             activo: true
         };
         cajeros.push(cajero);
         guardarDatos('cajeros', cajeros);
-        console.log('Usuario ADMIN creado automáticamente');
+        
+        // También inicializar datos por defecto si es primera vez
+        inicializarDatos();
+        
+        console.log('Usuario ADMIN creado en este dispositivo');
     }
     
-    // 🔧 NUEVO: Verificar contraseña especial para admin
+    // 🔧 NUEVO: Verificar contraseña para admin (63717 o 637177)
     if (esAdminVariante) {
-        // Para admin: aceptar 63717, 637177, o el password guardado
-        const passwordValido = password === '63717' || password === '637177' || password === cajero.password;
-        
-        if (!passwordValido) {
-            document.getElementById('login-error').textContent = '❌ Contraseña de administrador incorrecta';
+        if (!esPasswordAdminValida) {
+            document.getElementById('login-error').textContent = '❌ Contraseña de administrador incorrecta. Use: 63717';
             document.getElementById('login-error').style.display = 'block';
             return;
         }
