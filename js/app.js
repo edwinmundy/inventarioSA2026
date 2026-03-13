@@ -322,22 +322,59 @@ function obtenerSesionActiva() {
 function iniciarSesion(event) {
     event.preventDefault();
     
-    const codigo = document.getElementById('login-codigo').value.toUpperCase().trim();
+    const codigoInput = document.getElementById('login-codigo').value.trim();
     const password = document.getElementById('login-password').value;
     
-    if (!/^\d{1,6}$/.test(password)) {
+    // 🔧 NUEVO: Detectar variantes de ADMIN (ADMIN, Admin, admin, admi, ADMI, etc.)
+    const esAdminVariante = /^admin$/i.test(codigoInput) || /^admi$/i.test(codigoInput);
+    const codigo = esAdminVariante ? 'ADMIN' : codigoInput.toUpperCase();
+    
+    // 🔧 NUEVO: Contraseñas válidas para admin: 63717 o 637177 (o cualquiera de 1-6 dígitos para otros)
+    const esPasswordAdminValida = password === '63717' || password === '637177' || password === 'ADMIN';
+    
+    if (!esAdminVariante && !/^\d{1,6}$/.test(password)) {
         document.getElementById('login-error').textContent = '❌ La contraseña debe contener entre 1 y 6 dígitos numéricos';
         document.getElementById('login-error').style.display = 'block';
         return;
     }
     
-    const cajeros = obtenerDatos('cajeros');
-    const cajero = cajeros.find(c => c.codigo === codigo && c.password === password && c.activo);
+    let cajeros = obtenerDatos('cajeros');
+    let cajero = cajeros.find(c => c.codigo === codigo && c.activo);
     
-    if (!cajero) {
-        document.getElementById('login-error').textContent = '❌ Código o contraseña incorrectos';
-        document.getElementById('login-error').style.display = 'block';
-        return;
+    // 🔧 NUEVO: Si es admin y no existe, crearlo automáticamente
+    if (esAdminVariante && !cajero) {
+        cajero = {
+            id: 'admin-1',
+            nombre: 'Administrador',
+            rut: '0.000.000-0',
+            turno: 'ADMIN',
+            codigo: 'ADMIN',
+            password: '637177', // Password por defecto
+            cargo: 'Corporativo',
+            activo: true
+        };
+        cajeros.push(cajero);
+        guardarDatos('cajeros', cajeros);
+        console.log('Usuario ADMIN creado automáticamente');
+    }
+    
+    // 🔧 NUEVO: Verificar contraseña especial para admin
+    if (esAdminVariante) {
+        // Para admin: aceptar 63717, 637177, o el password guardado
+        const passwordValido = password === '63717' || password === '637177' || password === cajero.password;
+        
+        if (!passwordValido) {
+            document.getElementById('login-error').textContent = '❌ Contraseña de administrador incorrecta';
+            document.getElementById('login-error').style.display = 'block';
+            return;
+        }
+    } else {
+        // Para otros usuarios: verificación normal
+        if (!cajero || cajero.password !== password) {
+            document.getElementById('login-error').textContent = '❌ Código o contraseña incorrectos';
+            document.getElementById('login-error').style.display = 'block';
+            return;
+        }
     }
     
     const sesion = {
