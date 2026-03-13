@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoría - Historial de Movimientos</title>
+    <link rel="stylesheet" href="css/estilos.css">
+    <style>
+        .audit-filters {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .audit-filters select, .audit-filters input {
+            padding: 10px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+        }
+        .audit-table {
+            font-size: 0.9rem;
+        }
+        .audit-table td {
+            padding: 12px;
+        }
+        .tipo-entrada {
+            color: var(--success);
+            font-weight: bold;
+        }
+        .tipo-salida {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        .tipo-edicion {
+            color: var(--warning);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <h1>📋 Auditoría - Historial de Movimientos</h1>
+                <div id="user-info"></div>
+            </div>
+            <nav class="main-nav" id="main-nav">
+                <!-- Se carga dinámicamente desde app.js -->
+            </nav>
+        </header>
+
+        <main>
+            <div class="audit-filters">
+                <select id="filtro-categoria" onchange="cargarAuditoria()" autocomplete="off">
+                 <!-- Las opciones se cargarán con JS -->
+                </select>
+                <select id="filtro-tipo" onchange="cargarAuditoria()" autocomplete="off">
+                    <option value="todos">Todos los tipos</option>
+                    <option value="entrada">Entradas (+)</option>
+                    <option value="salida">Salidas (-)</option>
+                    <option value="edicion">Ediciones</option>
+                </select>
+                <input type="date" id="filtro-fecha" onchange="cargarAuditoria()" autocomplete="off">
+                <input type="text" id="filtro-cajero" placeholder="Buscar cajero..." onkeyup="cargarAuditoria()" autocomplete="off">
+            </div>
+
+            <div class="table-container">
+                <table class="inventory-table audit-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Cajero</th>
+                            <th>Código</th>
+                            <th>Categoría</th>
+                            <th>Item</th>
+                            <th>Tipo</th>
+                            <th>Cantidad</th>
+                            <th>Stock Anterior</th>
+                            <th>Stock Nuevo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-auditoria">
+                        <!-- Registros se cargan dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button onclick="exportarAuditoria()" class="btn-export">📥 Exportar a Excel</button>
+                <button onclick="limpiarAuditoria()" class="btn-delete" style="background: var(--danger); color: white;">🗑️ Limpiar Historial</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!verificarSesion()) return;
+            inicializarDatos();
+            cargarFiltrosCategoriasAuditoria();
+            cargarAuditoria();
+        });
+    </script>
+</body>
+</html>

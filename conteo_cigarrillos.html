@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conteo de Cigarrillos - Inventario</title>
+    <link rel="stylesheet" href="css/estilos.css">
+    <style>
+        /* Estilos específicos para conteo de cigarrillos */
+        .import-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            max-height: 70px;
+            overflow: hidden;
+            transition: max-height 0.5s ease, box-shadow 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .import-section:hover {
+            max-height: 600px;
+            box-shadow: var(--shadow-lg);
+            cursor: default;
+        }
+
+        .import-section::before {
+            content: '▼ Expandir';
+            position: absolute;
+            top: 28px;
+            right: 24px;
+            font-size: 0.85rem;
+            color: var(--primary);
+            font-weight: 600;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .import-section:hover::before {
+            opacity: 0;
+        }
+
+        .import-section h3 {
+            margin: 0 0 20px 0;
+            padding-right: 80px;
+            pointer-events: none;
+        }
+
+        .import-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .import-tab {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-light);
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .import-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .import-content {
+            display: none;
+        }
+
+        .import-content.active {
+            display: block;
+        }
+
+        .file-drop-zone {
+            border: 3px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-drop-zone:hover {
+            border-color: var(--primary);
+            background: var(--bg);
+        }
+
+        .file-drop-zone.dragover {
+            border-color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .paste-zone {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        /* NUEVOS ESTILOS PARA CONTEO DIVIDIDO */
+        .conteo-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .conteo-table th {
+            background: var(--bg);
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .conteo-table th:first-child,
+        .conteo-table td:first-child {
+            text-align: left;
+            padding-left: 16px;
+        }
+
+        .conteo-table td {
+            padding: 10px 6px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .conteo-table tr:hover {
+            background: var(--bg);
+        }
+
+        /* Inputs de conteo dividido */
+        .conteo-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .conteo-input-label {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .conteo-input {
+            width: 70px;
+            padding: 8px 4px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .conteo-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .conteo-input.bodega:focus {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+
+        .conteo-input.exhibicion:focus {
+            border-color: #06b6d4;
+            background: #ecfeff;
+        }
+
+        .conteo-total {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text);
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 6px;
+            min-width: 60px;
+            display: inline-block;
+        }
+
+        .estado-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .estado-ok {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .estado-ingresar {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .estado-egresar {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .estado-pendiente {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .diferencia-cell {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .diferencia-positiva {
+            color: var(--success);
+        }
+
+        .diferencia-negativa {
+            color: var(--danger);
+        }
+
+        .diferencia-cero {
+            color: var(--text-light);
+        }
+
+        .resumen-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .resumen-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .resumen-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .resumen-label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .resumen-ok { color: var(--success); }
+        .resumen-ingresar { color: var(--primary); }
+        .resumen-egresar { color: var(--danger); }
+        .resumen-pendiente { color: var(--warning); }
+
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            background: var(--card-bg);
+        }
+
+        .producto-nombre {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .producto-codigo {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            background: var(--bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .readonly-notice {
+            background: var(--admin-bg);
+            border-left: 4px solid var(--admin-border);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .conteo-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .conteo-fecha {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* Indicadores visuales para los tipos de conteo */
+        .header-bodega {
+            border-bottom: 3px solid #8b5cf6 !important;
+            color: #8b5cf6 !important;
+        }
+
+        .header-exhibicion {
+            border-bottom: 3px solid #06b6d4 !important;
+            color: #06b6d4 !important;
+        }
+
+        .header-total {
+            border-bottom: 3px solid var(--primary) !important;
+        }
+
+        @media (max-width: 768px) {
+            .conteo-table {
+                font-size: 0.8rem;
+            }
+
+            .conteo-table th,
+            .conteo-table td {
+                padding: 8px 4px;
+            }
+
+            .conteo-input {
+                width: 55px;
+                padding: 6px 2px;
+                font-size: 0.9rem;
+            }
+
+            .conteo-total {
+                font-size: 0.95rem;
+                padding: 4px 8px;
+                min-width: 50px;
+            }
+
+            .action-bar {
+                flex-direction: column;
+            }
+
+            .action-bar button {
+                width: 100%;
+            }
+
+            .import-section {
+                max-height: 80px;
+            }
+
+            .resumen-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <h1>🚬 Conteo de Cigarrillos</h1>
+                <div id="user-info"></div>
+            </div>
+            <nav class="main-nav" id="main-nav"></nav>
+        </header>
+
+        <main>
+            <!-- Notificación de permisos para cajeros -->
+            <div id="readonly-notice" class="readonly-notice" style="display: none;">
+                <strong>👁️ Modo Solo Lectura:</strong> Como cajero, puedes realizar conteos pero no modificar datos del sistema.
+            </div>
+
+            <!-- Sección de Importación (Solo Admin) - AHORA PLEGABLE -->
+            <div id="import-section" class="import-section" style="display: none;">
+                <h3>📥 Importar Datos del Sistema</h3>
+
+                <div class="import-tabs">
+                    <button class="import-tab active" onclick="event.stopPropagation(); switchImportTab('file')">📁 Archivo Excel</button>
+                    <button class="import-tab" onclick="event.stopPropagation(); switchImportTab('paste')">📋 Pegar Datos</button>
+                </div>
+
+                <!-- Importar por archivo -->
+                <div id="tab-file" class="import-content active">
+                    <div class="file-drop-zone" id="drop-zone" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
+                        <div style="font-size: 3rem; margin-bottom: 12px;">📁</div>
+                        <p style="font-weight: 600; margin-bottom: 8px;">Arrastra un archivo Excel aquí</p>
+                        <p style="color: var(--text-light); font-size: 0.9rem;">o haz clic para seleccionar</p>
+                        <input type="file" id="file-input" accept=".xlsx,.xls" style="display: none;">
+                    </div>
+                    <p style="margin-top: 12px; color: var(--text-light); font-size: 0.85rem;">
+                        💡 El sistema ignorará las primeras 6 filas y leerá desde la fila 7. Columnas: A=Código, B=Producto, D=Stock
+                    </p>
+                </div>
+
+                <!-- Importar por pegado -->
+                <div id="tab-paste" class="import-content">
+                    <textarea id="paste-zone" class="paste-zone" placeholder="Pega aquí los datos desde Excel...&#10;&#10;Formato esperado:&#10;Código | Producto | ... | Stock&#10;12345 | Cigarrillo X | ... | 50"></textarea>
+                    <button onclick="event.stopPropagation(); procesarDatosPegados()" class="btn-primary" style="margin-top: 12px; width: 100%;">
+                        📋 Procesar Datos Pegados
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resumen del Conteo -->
+            <div class="resumen-cards" id="resumen-cards" style="display: none;">
+                <div class="resumen-card">
+                    <div class="resumen-value resumen-pendiente" id="count-pendientes">0</div>
+                    <div class="resumen-label">Pendientes</div>
+                </div>
+                <div class="resumen-card">
+                    <div class="resumen-value resumen-ok" id="count-ok">0</div>
+                    <div class="resumen-label">OK</div>
+                </div>
+                <div class="resumen-card">
+                    <div class="resumen-value resumen-ingresar" id="count-ingresar">0</div>
+                    <div class="resumen-label">Ingresar</div>
+                </div>
+                <div class="resumen-card">
+                    <div class="resumen-value resumen-egresar" id="count-egresar">0</div>
+                    <div class="resumen-label">Egresar</div>
+                </div>
+                <div class="resumen-card">
+                    <div class="resumen-value" id="count-total">0</div>
+                    <div class="resumen-label">Total Productos</div>
+                </div>
+            </div>
+
+            <!-- Info del Conteo -->
+            <div id="conteo-info" class="conteo-info" style="display: none;">
+                <div>
+                    <strong>Conteo #<span id="conteo-numero">1</span></strong>
+                    <span class="conteo-fecha" id="conteo-fecha"></span>
+                </div>
+                <div id="cajero-conteo">Cajero: -</div>
+            </div>
+
+            <!-- Barra de Acciones -->
+            <div class="action-bar" id="action-bar" style="display: none;">
+                <button onclick="guardarConteo()" class="btn-primary">💾 Guardar Conteo</button>
+                <button onclick="exportarConteoExcel()" class="btn-export">📥 Exportar a Excel</button>
+                <button onclick="limpiarConteo()" class="btn-delete" style="background: var(--danger); color: white;">🗑️ Nuevo Conteo</button>
+            </div>
+
+            <!-- Tabla de Conteo con 3 columnas de conteo -->
+            <div class="table-container" id="table-container" style="display: none;">
+                <table class="conteo-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 140px;">Código</th>
+                            <th>Producto</th>
+                            <th style="width: 90px; text-align: center;">Stock Sistema</th>
+                            <th style="width: 80px; text-align: center;" class="header-bodega">🏭 Bodega</th>
+                            <th style="width: 80px; text-align: center;" class="header-exhibicion">🏪 Exhibición</th>
+                            <th style="width: 90px; text-align: center;" class="header-total">📊 Total</th>
+                            <th style="width: 80px; text-align: center;">Diferencia</th>
+                            <th style="width: 110px; text-align: center;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-conteo">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Estado Vacío -->
+            <div id="empty-state" class="empty-state" style="padding: 60px 20px;">
+                <div class="empty-state-icon">📊</div>
+                <h3>No hay datos de cigarrillos cargados</h3>
+                <p id="empty-message">Los administradores pueden importar datos desde Excel. Los cajeros deben esperar a que se cargue el inventario.</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // Variables específicas del conteo de cigarrillos
+        let productosCigarrillos = [];
+        let conteoActual = [];
+        let esAdmin = false;
+        let conteoIdActual = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar datos base
+            if (!localStorage.getItem('inventario_cajeros')) {
+                inicializarDatos();
+            } else {
+                actualizarNavegacion();
+            }
+
+            // Verificar sesión
+            if (!verificarSesion()) return;
+
+            // Determinar permisos
+            esAdmin = cajeroActual && cajeroActual.codigo === 'ADMIN';
+
+            // Configurar UI según permisos
+            configurarInterfaz();
+
+            // Cargar datos existentes si los hay
+            cargarConteoExistente();
+
+            // Configurar eventos de importación
+            configurarEventosImportacion();
+
+            // Mostrar usuario activo en el header
+            mostrarUsuarioActual();
+        });
+
+        function configurarInterfaz() {
+            // Mostrar sección de importación para TODOS (cajeros y admin)
+            const importSection = document.getElementById('import-section');
+            const readonlyNotice = document.getElementById('readonly-notice');
+
+            // Todos pueden importar datos
+            importSection.style.display = 'block';
+
+            // Solo mostrar aviso de solo lectura si es necesario (opcional)
+            readonlyNotice.style.display = 'none';
+
+            // Actualizar info del cajero en el conteo
+            document.getElementById('cajero-conteo').textContent = `Cajero: ${cajeroActual.nombre} (${cajeroActual.codigo})`;
+        }
+
+        function configurarEventosImportacion() {
+            // Drag and drop
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+            });
+
+            dropZone.addEventListener('drop', handleDrop, false);
+            fileInput.addEventListener('change', handleFiles, false);
+        }
+
+        function switchImportTab(tab) {
+            document.querySelectorAll('.import-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.import-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles({ target: { files: files } });
+        }
+
+        function handleFiles(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                // Tomar la primera hoja
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                procesarDatosExcel(jsonData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function procesarDatosExcel(data) {
+            // Ignorar primeras 6 filas (índices 0-5), comenzar desde índice 6 (fila 7)
+            const filasValidas = data.slice(6);
+
+            productosCigarrillos = [];
+
+            filasValidas.forEach((fila, index) => {
+                if (!fila || fila.length < 4) return;
+
+                const codigo = fila[0];
+                const producto = fila[1];
+                const stockSistema = parseInt(fila[3]) || 0;
+
+                if (codigo && producto) {
+                    productosCigarrillos.push({
+                        id: `cig-${Date.now()}-${index}`,
+                        codigo: String(codigo).trim(),
+                        nombre: String(producto).trim(),
+                        stockSistema: stockSistema,
+                        // NUEVOS CAMPOS DE CONTEO DIVIDIDO
+                        conteoBodega: null,
+                        conteoExhibicion: null,
+                        conteoTotal: null,
+                        diferencia: 0,
+                        estado: 'PENDIENTE'
+                    });
+                }
+            });
+
+            if (productosCigarrillos.length === 0) {
+                mostrarNotificacion('No se encontraron datos válidos en el archivo', 'error');
+                return;
+            }
+
+            // Guardar en localStorage como categoría especial
+            guardarDatos('cigarrillos_sistema', productosCigarrillos);
+
+            // Inicializar conteo vacío
+            inicializarNuevoConteo();
+
+            mostrarNotificacion(`Importados ${productosCigarrillos.length} productos`, 'success');
+            renderizarTabla();
+        }
+
+        function procesarDatosPegados() {
+            const texto = document.getElementById('paste-zone').value.trim();
+            if (!texto) {
+                mostrarNotificacion('No hay datos para procesar', 'error');
+                return;
+            }
+
+            const lineas = texto.split('\n');
+            productosCigarrillos = [];
+
+            // Intentar detectar si hay encabezado
+            let inicio = 0;
+            if (lineas[0].toLowerCase().includes('código') || lineas[0].toLowerCase().includes('producto')) {
+                inicio = 1;
+            }
+
+            for (let i = inicio; i < lineas.length; i++) {
+                const linea = lineas[i].trim();
+                if (!linea) continue;
+
+                // Separar por tabulaciones o múltiples espacios
+                const columnas = linea.split(/\t+/).map(c => c.trim());
+
+                if (columnas.length >= 3) {
+                    const codigo = columnas[0];
+                    const producto = columnas[1];
+                    let stockSistema = 0;
+                    for (let j = columnas.length - 1; j >= 2; j--) {
+                        const val = parseInt(columnas[j]);
+                        if (!isNaN(val)) {
+                            stockSistema = val;
+                            break;
+                        }
+                    }
+
+                    if (codigo && producto && codigo !== 'undefined') {
+                        productosCigarrillos.push({
+                            id: `cig-${Date.now()}-${i}`,
+                            codigo: String(codigo),
+                            nombre: String(producto),
+                            stockSistema: stockSistema,
+                            // NUEVOS CAMPOS DE CONTEO DIVIDIDO
+                            conteoBodega: null,
+                            conteoExhibicion: null,
+                            conteoTotal: null,
+                            diferencia: 0,
+                            estado: 'PENDIENTE'
+                        });
+                    }
+                }
+            }
+
+            if (productosCigarrillos.length === 0) {
+                mostrarNotificacion('No se pudieron procesar los datos. Verifica el formato.', 'error');
+                return;
+            }
+
+            guardarDatos('cigarrillos_sistema', productosCigarrillos);
+            inicializarNuevoConteo();
+
+            mostrarNotificacion(`Importados ${productosCigarrillos.length} productos`, 'success');
+            renderizarTabla();
+
+            document.getElementById('paste-zone').value = '';
+        }
+
+        function inicializarNuevoConteo() {
+            conteoActual = productosCigarrillos.map(p => ({
+                ...p,
+                conteoBodega: null,
+                conteoExhibicion: null,
+                conteoTotal: null,
+                diferencia: 0,
+                estado: 'PENDIENTE'
+            }));
+
+            conteoIdActual = `conteo-${Date.now()}`;
+
+            // Guardar conteo en progreso
+            guardarDatos('conteo_en_progreso', {
+                id: conteoIdActual,
+                fecha: new Date().toISOString(),
+                cajeroId: cajeroActual.id,
+                cajeroNombre: cajeroActual.nombre,
+                productos: conteoActual
+            });
+        }
+
+        function cargarConteoExistente() {
+            // Verificar si hay un conteo en progreso
+            const conteoEnProgreso = obtenerDatos('conteo_en_progreso');
+            const productosSistema = obtenerDatos('cigarrillos_sistema');
+
+            if (conteoEnProgreso && conteoEnProgreso.productos && conteoEnProgreso.productos.length > 0) {
+                conteoActual = conteoEnProgreso.productos;
+                conteoIdActual = conteoEnProgreso.id;
+                productosCigarrillos = productosSistema.length > 0 ? productosSistema : conteoActual;
+
+                document.getElementById('conteo-fecha').textContent = new Date(conteoEnProgreso.fecha).toLocaleString('es-ES');
+                renderizarTabla();
+            } else if (productosSistema && productosSistema.length > 0) {
+                productosCigarrillos = productosSistema;
+
+                if (!esAdmin) {
+                    document.getElementById('empty-message').textContent = 'Esperando a que el administrador inicie un nuevo conteo...';
+                }
+            }
+        }
+
+        // NUEVA FUNCIÓN: Calcular total y actualizar conteo
+        function calcularTotal(index) {
+            const item = conteoActual[index];
+            const bodega = parseInt(document.getElementById(`input-bodega-${index}`).value) || 0;
+            const exhibicion = parseInt(document.getElementById(`input-exhibicion-${index}`).value) || 0;
+
+            // Actualizar valores
+            item.conteoBodega = bodega;
+            item.conteoExhibicion = exhibicion;
+            item.conteoTotal = bodega + exhibicion;
+
+            // Calcular diferencia y estado
+            const diferencia = item.conteoTotal - item.stockSistema;
+            item.diferencia = diferencia;
+            item.estado = calcularEstado(item.stockSistema, item.conteoTotal);
+
+            // Actualizar UI
+            document.getElementById(`total-${index}`).textContent = item.conteoTotal;
+
+            const difCell = document.getElementById(`dif-${index}`);
+            difCell.textContent = diferencia > 0 ? `+${diferencia}` : diferencia;
+            difCell.className = `diferencia-cell ${diferencia > 0 ? 'diferencia-positiva' : (diferencia < 0 ? 'diferencia-negativa' : 'diferencia-cero')}`;
+
+            const estadoCell = document.getElementById(`estado-${index}`);
+            let estadoClass = '';
+            let estadoTexto = item.estado;
+
+            switch(item.estado) {
+                case 'OK': estadoClass = 'estado-ok'; break;
+                case 'INGRESAR': estadoClass = 'estado-ingresar'; break;
+                case 'EGRESAR': estadoClass = 'estado-egresar'; break;
+                default: estadoTexto = 'PENDIENTE'; estadoClass = 'estado-pendiente';
+            }
+
+            estadoCell.className = `estado-badge ${estadoClass}`;
+            estadoCell.textContent = estadoTexto;
+
+            // Actualizar resumen
+            actualizarResumen();
+
+            // Auto-guardar
+            guardarDatos('conteo_en_progreso', {
+                id: conteoIdActual,
+                fecha: new Date().toISOString(),
+                cajeroId: cajeroActual.id,
+                cajeroNombre: cajeroActual.nombre,
+                productos: conteoActual
+            });
+        }
+
+        function renderizarTabla() {
+            const tbody = document.getElementById('tabla-conteo');
+            const emptyState = document.getElementById('empty-state');
+            const resumen = document.getElementById('resumen-cards');
+            const actionBar = document.getElementById('action-bar');
+            const tableContainer = document.getElementById('table-container');
+            const conteoInfo = document.getElementById('conteo-info');
+
+            if (!conteoActual || conteoActual.length === 0) {
+                emptyState.style.display = 'block';
+                resumen.style.display = 'none';
+                actionBar.style.display = 'none';
+                tableContainer.style.display = 'none';
+                conteoInfo.style.display = 'none';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            resumen.style.display = 'grid';
+            actionBar.style.display = 'flex';
+            tableContainer.style.display = 'block';
+            conteoInfo.style.display = 'flex';
+
+            // Actualizar resumen
+            actualizarResumen();
+
+            // Renderizar filas con 3 inputs de conteo
+            tbody.innerHTML = conteoActual.map((item, index) => {
+                const diferencia = (item.conteoTotal !== null && item.conteoTotal !== undefined) ? item.conteoTotal - item.stockSistema : 0;
+                const estado = item.estado || 'PENDIENTE';
+
+                let estadoClass = '';
+                let estadoTexto = estado;
+
+                switch(estado) {
+                    case 'OK': estadoClass = 'estado-ok'; break;
+                    case 'INGRESAR': estadoClass = 'estado-ingresar'; break;
+                    case 'EGRESAR': estadoClass = 'estado-egresar'; break;
+                    default: estadoTexto = 'PENDIENTE'; estadoClass = 'estado-pendiente';
+                }
+
+                const diferenciaClass = diferencia > 0 ? 'diferencia-positiva' : (diferencia < 0 ? 'diferencia-negativa' : 'diferencia-cero');
+                const diferenciaTexto = (item.conteoTotal !== null && item.conteoTotal !== undefined) ? (diferencia > 0 ? `+${diferencia}` : diferencia) : '-';
+                const totalMostrado = (item.conteoTotal !== null && item.conteoTotal !== undefined) ? item.conteoTotal : '-';
+
+                return `
+                    <tr id="fila-${index}">
+                        <td>
+                            <span class="producto-codigo">${item.codigo}</span>
+                        </td>
+                        <td>
+                            <div class="producto-nombre">${item.nombre}</div>
+                        </td>
+                        <td style="text-align: center; font-weight: 600;">${item.stockSistema}</td>
+
+                        <!-- CONTEO BODEGA -->
+                        <td style="text-align: center;">
+                            <div class="conteo-input-group">
+                                <input type="number" 
+                                       class="conteo-input bodega" 
+                                       id="input-bodega-${index}"
+                                       value="${item.conteoBodega !== null && item.conteoBodega !== undefined ? item.conteoBodega : ''}"
+                                       min="0"
+                                       onchange="calcularTotal(${index})"
+                                       onkeyup="if(event.key==='Enter') document.getElementById('input-exhibicion-${index}').focus()"
+                                       placeholder="0">
+                            </div>
+                        </td>
+
+                        <!-- CONTEO EXHIBICIÓN -->
+                        <td style="text-align: center;">
+                            <div class="conteo-input-group">
+                                <input type="number" 
+                                       class="conteo-input exhibicion" 
+                                       id="input-exhibicion-${index}"
+                                       value="${item.conteoExhibicion !== null && item.conteoExhibicion !== undefined ? item.conteoExhibicion : ''}"
+                                       min="0"
+                                       onchange="calcularTotal(${index})"
+                                       onkeyup="if(event.key==='Enter') moverAlSiguiente(${index})"
+                                       placeholder="0">
+                            </div>
+                        </td>
+
+                        <!-- TOTAL (CALCULADO) -->
+                        <td style="text-align: center;">
+                            <span class="conteo-total" id="total-${index}">${totalMostrado}</span>
+                        </td>
+
+                        <!-- DIFERENCIA -->
+                        <td style="text-align: center;" class="diferencia-cell ${diferenciaClass}" id="dif-${index}">
+                            ${diferenciaTexto}
+                        </td>
+
+                        <!-- ESTADO -->
+                        <td style="text-align: center;">
+                            <span class="estado-badge ${estadoClass}" id="estado-${index}">
+                                ${estadoTexto}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Focus en el primer input pendiente
+            setTimeout(() => {
+                const primerPendiente = conteoActual.findIndex(c => c.conteoTotal === null || c.conteoTotal === undefined);
+                if (primerPendiente !== -1) {
+                    document.getElementById(`input-bodega-${primerPendiente}`)?.focus();
+                }
+            }, 100);
+        }
+
+        function calcularEstado(stockSistema, conteoTotal) {
+            if (conteoTotal === null || conteoTotal === undefined || isNaN(conteoTotal)) {
+                return 'PENDIENTE';
+            }
+            if (conteoTotal === stockSistema) return 'OK';
+            if (conteoTotal > stockSistema) return 'INGRESAR';
+            return 'EGRESAR';
+        }
+
+        function moverAlSiguiente(indexActual) {
+            const siguiente = indexActual + 1;
+            if (siguiente < conteoActual.length) {
+                document.getElementById(`input-bodega-${siguiente}`)?.focus();
+            }
+        }
+
+        function actualizarResumen() {
+            const total = conteoActual.length;
+            const pendientes = conteoActual.filter(c => c.conteoTotal === null || c.conteoTotal === undefined).length;
+            const ok = conteoActual.filter(c => c.estado === 'OK').length;
+            const ingresar = conteoActual.filter(c => c.estado === 'INGRESAR').length;
+            const egresar = conteoActual.filter(c => c.estado === 'EGRESAR').length;
+
+            document.getElementById('count-total').textContent = total;
+            document.getElementById('count-pendientes').textContent = pendientes;
+            document.getElementById('count-ok').textContent = ok;
+            document.getElementById('count-ingresar').textContent = ingresar;
+            document.getElementById('count-egresar').textContent = egresar;
+        }
+
+        function guardarConteo() {
+            if (!verificarSesion()) return;
+
+            const pendientes = conteoActual.filter(c => c.conteoTotal === null || c.conteoTotal === undefined).length;
+            if (pendientes > 0) {
+                if (!confirm(`Faltan ${pendientes} productos por contar. ¿Deseas guardar igual?`)) {
+                    return;
+                }
+            }
+
+            const conteoFinal = {
+                id: conteoIdActual,
+                fechaInicio: obtenerDatos('conteo_en_progreso')?.fecha || new Date().toISOString(),
+                fechaFin: new Date().toISOString(),
+                cajeroId: cajeroActual.id,
+                cajeroNombre: cajeroActual.nombre,
+                cajeroCodigo: cajeroActual.codigo,
+                productos: conteoActual,
+                resumen: {
+                    total: conteoActual.length,
+                    ok: conteoActual.filter(c => c.estado === 'OK').length,
+                    ingresar: conteoActual.filter(c => c.estado === 'INGRESAR').length,
+                    egresar: conteoActual.filter(c => c.estado === 'EGRESAR').length,
+                    pendientes: conteoActual.filter(c => c.conteoTotal === null || c.conteoTotal === undefined).length
+                }
+            };
+
+            // Guardar en historial
+            let historial = obtenerDatos('historial_conteos') || [];
+            historial.unshift(conteoFinal);
+            guardarDatos('historial_conteos', historial);
+
+            // Limpiar conteo en progreso
+            localStorage.removeItem(obtenerStorageKey('conteo_en_progreso'));
+
+            // Registrar en auditoría general
+            registrarAuditoria({
+                cajeroId: cajeroActual.id,
+                cajeroNombre: cajeroActual.nombre,
+                cajeroCodigo: cajeroActual.codigo,
+                tipo: 'conteo_cigarrillos',
+                categoria: 'cigarrillos',
+                itemNombre: `Conteo #${conteoFinal.id.substr(-6)}`,
+                cantidad: conteoActual.filter(c => c.conteoTotal !== null && c.conteoTotal !== undefined).length,
+                stockAnterior: 0,
+                stockNuevo: conteoActual.filter(c => c.conteoTotal !== null && c.conteoTotal !== undefined).length
+            });
+
+            mostrarNotificacion('Conteo guardado correctamente', 'success');
+
+            // 🎯 REDIRIGIR AL HISTORIAL CON EL ID DEL CONTEO PARA ABRIR AUTOMÁTICAMENTE
+            setTimeout(() => {
+                window.location.href = `historial_conteos.html?ver=${conteoFinal.id}`;
+            }, 800);
+        }
+
+        function exportarConteoExcel() {
+            if (!conteoActual || conteoActual.length === 0) {
+                mostrarNotificacion('No hay datos para exportar', 'error');
+                return;
+            }
+
+            const datos = conteoActual.map(item => ({
+                'Código': item.codigo,
+                'Producto': item.nombre,
+                'Stock Sistema': item.stockSistema,
+                'Conteo Bodega': item.conteoBodega !== null && item.conteoBodega !== undefined ? item.conteoBodega : '',
+                'Conteo Exhibición': item.conteoExhibicion !== null && item.conteoExhibicion !== undefined ? item.conteoExhibicion : '',
+                'Conteo Total': item.conteoTotal !== null && item.conteoTotal !== undefined ? item.conteoTotal : '',
+                'Diferencia': item.conteoTotal !== null && item.conteoTotal !== undefined ? item.conteoTotal - item.stockSistema : '',
+                'Estado': item.estado || 'PENDIENTE',
+                'Acción Requerida': item.estado === 'OK' ? 'Ninguna' : 
+                                   item.estado === 'INGRESAR' ? 'Ingresar mercancía' :
+                                   item.estado === 'EGRESAR' ? 'Egresar mercancía' : 'Pendiente'
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(datos);
+
+            // Ajustar anchos
+            ws['!cols'] = [
+                { wch: 15 }, { wch: 40 }, { wch: 15 }, 
+                { wch: 15 }, { wch: 18 }, { wch: 15 },
+                { wch: 12 }, { wch: 12 }, { wch: 20 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Conteo Cigarrillos');
+
+            // Agregar resumen
+            const resumen = [
+                ['RESUMEN DEL CONTEO'],
+                [''],
+                ['Fecha:', new Date().toLocaleString('es-ES')],
+                ['Cajero:', cajeroActual.nombre],
+                ['Código:', cajeroActual.codigo],
+                [''],
+                ['Total Productos:', conteoActual.length],
+                ['OK:', conteoActual.filter(c => c.estado === 'OK').length],
+                ['Ingresar:', conteoActual.filter(c => c.estado === 'INGRESAR').length],
+                ['Egresar:', conteoActual.filter(c => c.estado === 'EGRESAR').length],
+                ['Pendientes:', conteoActual.filter(c => c.conteoTotal === null || c.conteoTotal === undefined).length]
+            ];
+            const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
+            XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+            const fecha = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `conteo_cigarrillos_${fecha}_${cajeroActual.codigo}.xlsx`);
+
+            mostrarNotificacion('Excel exportado correctamente', 'success');
+        }
+
+        // Función para CAJEROS: Limpia conteo + datos importados (NO borra historial)
+        function limpiarConteoCajero() {
+            if (!confirm('¿Limpiar conteo?\n\nSe borrará:\n✓ Conteo en progreso\n✓ Datos importados\n\nNO se borra el historial de conteos guardados.')) {
+                return;
+            }
+
+            // Borrar conteo en progreso
+            localStorage.removeItem(obtenerStorageKey('conteo_en_progreso'));
+            // Borrar datos importados (cajero puede borrar esto)
+            localStorage.removeItem(obtenerStorageKey('cigarrillos_sistema'));
+
+            conteoActual = [];
+            conteoIdActual = null;
+            productosCigarrillos = [];
+
+            renderizarTabla();
+            mostrarNotificacion('Conteo y datos importados eliminados. Importa nuevos datos para continuar.', 'success');
+        }
+
+        // Función para ADMIN: Limpia TODO (conteo + datos importados + historial)
+        function limpiarConteoAdmin() {
+            if (!confirm('⚠️ MODO ADMIN - ELIMINAR TODO\n\nEsto borrará:\n✓ Conteo en progreso\n✓ Datos importados\n✓ Historial de conteos guardados\n\n¿Continuar?')) {
+                return;
+            }
+
+            // BORRAR ABSOLUTAMENTE TODO
+            localStorage.removeItem(obtenerStorageKey('conteo_en_progreso'));
+            localStorage.removeItem(obtenerStorageKey('cigarrillos_sistema'));
+            localStorage.removeItem(obtenerStorageKey('historial_conteos'));
+
+            conteoActual = [];
+            conteoIdActual = null;
+            productosCigarrillos = [];
+
+            renderizarTabla();
+            mostrarNotificacion('🗑️ Sistema completamente limpio. Todo eliminado incluyendo historial.', 'success');
+        }
+
+        // Función unificada que detecta el tipo de usuario
+        function limpiarConteo() {
+            if (esAdmin) {
+                limpiarConteoAdmin();
+            } else {
+                limpiarConteoCajero();
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal-edicion');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

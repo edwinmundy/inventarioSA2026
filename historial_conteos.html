@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Conteos - Cigarrillos</title>
+    <link rel="stylesheet" href="css/estilos.css">
+    <style>
+        .historial-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .conteo-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+            position: relative;
+        }
+
+        .conteo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .conteo-fecha {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .conteo-cajero {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .conteo-resumen {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .resumen-item {
+            text-align: center;
+        }
+
+        .resumen-num {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .resumen-label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        /* 🆕 ESTILOS PARA BOTONES DE ACCIÓN */
+        .conteo-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-delete-conteo {
+            background: #fee2e2;
+            color: var(--danger);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-delete-conteo:hover {
+            background: var(--danger);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Estilos para el modal de detalle */
+        .modal-detalle {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content-detalle {
+            background: var(--card-bg);
+            margin: 2% auto;
+            padding: 30px;
+            border-radius: 16px;
+            width: 95%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .detalle-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+
+        .detalle-table th {
+            background: var(--bg);
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .detalle-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .detalle-table td:first-child {
+            text-align: left;
+        }
+
+        .col-bodega { color: #8b5cf6; font-weight: 600; }
+        .col-exhibicion { color: #06b6d4; font-weight: 600; }
+        .col-total { color: var(--primary); font-weight: 700; }
+
+        /* NUEVOS ESTILOS PARA CAPTURA */
+        .capture-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            margin-left: 12px;
+        }
+
+        .capture-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .capture-btn:active {
+            transform: translateY(0);
+        }
+
+        .capture-btn.capturing {
+            background: #10b981;
+            pointer-events: none;
+        }
+
+        /* Área que se va a capturar */
+        #capture-area {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .capture-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .capture-header h2 {
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .capture-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .capture-info-item {
+            text-align: center;
+        }
+
+        .capture-info-label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .capture-info-value {
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 4px;
+        }
+
+        /* Notificación de captura */
+        .capture-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            animation: slideInRight 0.3s ease;
+        }
+
+        .capture-notification.show {
+            display: flex;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .conteo-resumen {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .conteo-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .conteo-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .modal-content-detalle {
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+
+            .detalle-table {
+                font-size: 0.8rem;
+            }
+
+            .detalle-table th,
+            .detalle-table td {
+                padding: 8px 4px;
+            }
+
+            .capture-btn {
+                width: 100%;
+                margin-left: 0;
+                margin-top: 12px;
+                justify-content: center;
+            }
+
+            .capture-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>📜 Historial de Conteos</h1>
+                <div id="user-info"></div>
+            </div>
+            <!-- NAVEGACIÓN -->
+            <nav class="main-nav" id="main-nav"></nav>
+        </header>
+
+        <main>
+            <div class="section-header">
+                <h2>Conteos Realizados</h2>
+                <button onclick="exportarHistorial()" class="btn-export">📥 Exportar Todo</button>
+            </div>
+
+            <div id="historial-list" class="historial-list">
+                <!-- Se carga dinámicamente -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Detalle -->
+    <div id="modal-detalle" class="modal-detalle">
+        <div class="modal-content-detalle">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <h2>📋 Detalle del Conteo</h2>
+                <div style="display: flex; align-items: center;">
+                    <button onclick="cerrarModalDetalle()" class="btn-secondary" style="padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; background: var(--secondary); color: white;">✕ Cerrar</button>
+                    <button onclick="capturarDetalle()" class="capture-btn" id="btn-capturar">
+                        📸 Capturar Imagen
+                    </button>
+                </div>
+            </div>
+            
+            <!-- ÁREA QUE SE CAPTURARÁ -->
+            <div id="capture-area">
+                <div class="capture-header">
+                    <h2>🚬 CONTEO DE CIGARRILLOS</h2>
+                    <p style="color: var(--text-light);">Reporte de Inventario Físico</p>
+                </div>
+                
+                <div class="capture-info" id="capture-info">
+                    <!-- Se llena dinámicamente -->
+                </div>
+                
+                <div id="detalle-conteo">
+                    <!-- Se carga dinámicamente -->
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); text-align: center; color: var(--text-light); font-size: 0.85rem;">
+                    Generado el <span id="capture-fecha"></span> • Sistema de Inventario
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificación de captura -->
+    <div id="capture-notification" class="capture-notification">
+        <span style="font-size: 1.5rem;">✅</span>
+        <div>
+            <strong>¡Imagen copiada!</strong><br>
+            <small>Ahora puedes pegarla (Ctrl+V) en Word, Excel, WhatsApp, etc.</small>
+        </div>
+    </div>
+
+    <!-- Librerías -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        let conteoActualParaCaptura = null;
+        let esAdmin = false;
+
+        // ✅ CORREGIDO: Agregar inicialización de datos y navegación
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar datos primero (sin verificar sesión aún)
+            if (!localStorage.getItem('inventario_cajeros')) {
+                inicializarDatos();
+            } else {
+                // Si ya existen datos, solo actualizar navegación
+                actualizarNavegacion();
+            }
+            
+            // Ahora verificar sesión
+            if (!verificarSesion()) return;
+            
+            // 🆕 Determinar si es admin
+            esAdmin = cajeroActual && cajeroActual.codigo === 'ADMIN';
+            
+            // Cargar contenido de la página
+            cargarHistorial();
+            
+            // Mostrar usuario en header
+            mostrarUsuarioActual();
+            
+            // 🎯 Verificar si hay parámetro para abrir detalle automáticamente
+            const urlParams = new URLSearchParams(window.location.search);
+            const conteoId = urlParams.get('ver');
+            
+            if (conteoId) {
+                // Esperar a que se cargue el historial y luego abrir el detalle
+                setTimeout(() => {
+                    verDetalleConteo(conteoId);
+                    // Limpiar el parámetro de la URL sin recargar
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }, 500);
+            }
+        });
+
+        function cargarHistorial() {
+            const historial = obtenerHistorialConteos();
+            const contenedor = document.getElementById('historial-list');
+
+            if (historial.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <h3>No hay conteos registrados</h3>
+                    </div>
+                `;
+                return;
+            }
+
+            contenedor.innerHTML = historial.map(conteo => {
+                const fecha = new Date(conteo.fechaFin || conteo.fecha).toLocaleString('es-ES');
+                const resumen = conteo.resumen || {};
+
+                // 🆕 Generar botones de acción según permisos
+                let accionesHtml = `
+                    <button onclick="verDetalleConteo('${conteo.id}')" class="btn-primary">Ver Detalle</button>
+                `;
+                
+                // Solo admin puede eliminar conteos
+                if (esAdmin) {
+                    accionesHtml += `
+                        <button onclick="eliminarConteo('${conteo.id}')" class="btn-delete-conteo" title="Eliminar conteo">🗑️</button>
+                    `;
+                }
+
+                return `
+                    <div class="conteo-card" id="conteo-card-${conteo.id}">
+                        <div class="conteo-header">
+                            <div>
+                                <div class="conteo-fecha">${fecha}</div>
+                                <div class="conteo-cajero">👤 ${conteo.cajeroNombre} (${conteo.cajeroCodigo})</div>
+                            </div>
+                            <div class="conteo-actions">
+                                ${accionesHtml}
+                            </div>
+                        </div>
+                        <div class="conteo-resumen">
+                            <div class="resumen-item">
+                                <div class="resumen-num">${resumen.total || 0}</div>
+                                <div class="resumen-label">Total</div>
+                            </div>
+                            <div class="resumen-item">
+                                <div class="resumen-num" style="color: var(--success);">${resumen.ok || 0}</div>
+                                <div class="resumen-label">OK</div>
+                            </div>
+                            <div class="resumen-item">
+                                <div class="resumen-num" style="color: var(--primary);">${resumen.ingresar || 0}</div>
+                                <div class="resumen-label">Ingresar</div>
+                            </div>
+                            <div class="resumen-item">
+                                <div class="resumen-num" style="color: var(--danger);">${resumen.egresar || 0}</div>
+                                <div class="resumen-label">Egresar</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 🆕 NUEVA FUNCIÓN: Eliminar conteo (solo admin)
+        function eliminarConteo(id) {
+            if (!esAdmin) {
+                mostrarNotificacion('Solo el administrador puede eliminar conteos', 'error');
+                return;
+            }
+
+            const historial = obtenerHistorialConteos();
+            const conteo = historial.find(c => c.id === id);
+            
+            if (!conteo) {
+                mostrarNotificacion('Conteo no encontrado', 'error');
+                return;
+            }
+
+            const fecha = new Date(conteo.fechaFin || conteo.fecha).toLocaleString('es-ES');
+            
+            if (!confirm(`⚠️ ¿Eliminar este conteo permanentemente?\n\n📅 Fecha: ${fecha}\n👤 Cajero: ${conteo.cajeroNombre}\n📦 Productos: ${conteo.productos?.length || 0}\n\nEsta acción no se puede deshacer.`)) {
+                return;
+            }
+
+            // Filtrar el conteo a eliminar
+            const nuevoHistorial = historial.filter(c => c.id !== id);
+            
+            // Guardar nuevo historial
+            guardarDatos('historial_conteos', nuevoHistorial);
+            
+            // Registrar en auditoría
+            registrarAuditoria({
+                cajeroId: cajeroActual.id,
+                cajeroNombre: cajeroActual.nombre,
+                cajeroCodigo: cajeroActual.codigo,
+                tipo: 'eliminacion_conteo',
+                categoria: 'cigarrillos',
+                itemNombre: `Conteo eliminado #${id.substr(-6)}`,
+                cantidad: 0,
+                stockAnterior: conteo.productos?.length || 0,
+                stockNuevo: 0
+            });
+
+            // Eliminar visualmente la tarjeta con animación
+            const card = document.getElementById(`conteo-card-${id}`);
+            if (card) {
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(-100%)';
+                setTimeout(() => {
+                    card.remove();
+                    // Recargar si no quedan conteos
+                    if (nuevoHistorial.length === 0) {
+                        cargarHistorial();
+                    }
+                }, 300);
+            }
+
+            mostrarNotificacion('Conteo eliminado correctamente', 'success');
+        }
+
+        function verDetalleConteo(id) {
+            const historial = obtenerHistorialConteos();
+            const conteo = historial.find(c => c.id === id);
+
+            if (!conteo) {
+                mostrarNotificacion('Conteo no encontrado', 'error');
+                return;
+            }
+
+            conteoActualParaCaptura = conteo;
+
+            const detalleDiv = document.getElementById('detalle-conteo');
+            const productos = conteo.productos || [];
+
+            document.getElementById('capture-info').innerHTML = `
+                <div class="capture-info-item">
+                    <div class="capture-info-label">Cajero</div>
+                    <div class="capture-info-value">${conteo.cajeroNombre}</div>
+                </div>
+                <div class="capture-info-item">
+                    <div class="capture-info-label">Código</div>
+                    <div class="capture-info-value">${conteo.cajeroCodigo}</div>
+                </div>
+                <div class="capture-info-item">
+                    <div class="capture-info-label">Fecha</div>
+                    <div class="capture-info-value">${new Date(conteo.fechaFin || conteo.fecha).toLocaleDateString('es-ES')}</div>
+                </div>
+            `;
+            
+            document.getElementById('capture-fecha').textContent = new Date().toLocaleString('es-ES');
+
+            detalleDiv.innerHTML = `
+                <table class="detalle-table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Stock Sistema</th>
+                            <th style="color: #8b5cf6;">🏭 Bodega</th>
+                            <th style="color: #06b6d4;">🏪 Exhibición</th>
+                            <th style="color: var(--primary);">📊 Total</th>
+                            <th>Diferencia</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${productos.map(p => {
+                            const diferencia = (p.conteoTotal !== null && p.conteoTotal !== undefined) ? p.conteoTotal - p.stockSistema : 0;
+                            const estado = p.estado || 'PENDIENTE';
+
+                            let estadoColor = '';
+                            switch(estado) {
+                                case 'OK': estadoColor = 'var(--success)'; break;
+                                case 'INGRESAR': estadoColor = 'var(--primary)'; break;
+                                case 'EGRESAR': estadoColor = 'var(--danger)'; break;
+                                default: estadoColor = 'var(--warning)';
+                            }
+
+                            return `
+                                <tr>
+                                    <td><code>${p.codigo}</code></td>
+                                    <td style="text-align: left; font-weight: 500;">${p.nombre}</td>
+                                    <td>${p.stockSistema}</td>
+                                    <td class="col-bodega">${p.conteoBodega !== null && p.conteoBodega !== undefined ? p.conteoBodega : '-'}</td>
+                                    <td class="col-exhibicion">${p.conteoExhibicion !== null && p.conteoExhibicion !== undefined ? p.conteoExhibicion : '-'}</td>
+                                    <td class="col-total">${p.conteoTotal !== null && p.conteoTotal !== undefined ? p.conteoTotal : '-'}</td>
+                                    <td style="font-weight: 700; color: ${diferencia > 0 ? 'var(--success)' : (diferencia < 0 ? 'var(--danger)' : 'var(--text-light)')}">
+                                        ${p.conteoTotal !== null && p.conteoTotal !== undefined ? (diferencia > 0 ? `+${diferencia}` : diferencia) : '-'}
+                                    </td>
+                                    <td style="color: ${estadoColor}; font-weight: 600;">${estado}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('modal-detalle').style.display = 'block';
+        }
+
+        async function capturarDetalle() {
+            const btn = document.getElementById('btn-capturar');
+            const captureArea = document.getElementById('capture-area');
+            const notification = document.getElementById('capture-notification');
+            
+            btn.classList.add('capturing');
+            btn.innerHTML = '⏳ Capturando...';
+            
+            try {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                const canvas = await html2canvas(captureArea, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    windowWidth: captureArea.scrollWidth,
+                    windowHeight: captureArea.scrollHeight
+                });
+                
+                canvas.toBlob(async (blob) => {
+                    try {
+                        const item = new ClipboardItem({ 'image/png': blob });
+                        await navigator.clipboard.write([item]);
+                        
+                        notification.classList.add('show');
+                        setTimeout(() => {
+                            notification.classList.remove('show');
+                        }, 4000);
+                        
+                    } catch (clipboardError) {
+                        console.error('Error al copiar al portapapeles:', clipboardError);
+                        const link = document.createElement('a');
+                        link.download = `conteo_cigarrillos_${new Date().toISOString().split('T')[0]}.png`;
+                        link.href = canvas.toDataURL();
+                        link.click();
+                        
+                        mostrarNotificacion('Imagen descargada (no se pudo copiar al portapapeles)', 'warning');
+                    }
+                }, 'image/png');
+                
+            } catch (error) {
+                console.error('Error al capturar:', error);
+                mostrarNotificacion('Error al generar la imagen', 'error');
+            } finally {
+                btn.classList.remove('capturing');
+                btn.innerHTML = '📸 Capturar Imagen';
+            }
+        }
+
+        function cerrarModalDetalle() {
+            document.getElementById('modal-detalle').style.display = 'none';
+            conteoActualParaCaptura = null;
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal-detalle');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function exportarHistorial() {
+            const historial = obtenerHistorialConteos();
+            if (historial.length === 0) {
+                mostrarNotificacion('No hay datos para exportar', 'error');
+                return;
+            }
+
+            const datos = historial.flatMap(conteo => {
+                return (conteo.productos || []).map(p => ({
+                    'Fecha Conteo': new Date(conteo.fechaFin || conteo.fecha).toLocaleString('es-ES'),
+                    'Cajero': conteo.cajeroNombre,
+                    'Código Cajero': conteo.cajeroCodigo,
+                    'Código Producto': p.codigo,
+                    'Producto': p.nombre,
+                    'Stock Sistema': p.stockSistema,
+                    'Conteo Bodega': p.conteoBodega !== null && p.conteoBodega !== undefined ? p.conteoBodega : '',
+                    'Conteo Exhibición': p.conteoExhibicion !== null && p.conteoExhibicion !== undefined ? p.conteoExhibicion : '',
+                    'Conteo Total': p.conteoTotal !== null && p.conteoTotal !== undefined ? p.conteoTotal : '',
+                    'Diferencia': p.conteoTotal !== null && p.conteoTotal !== undefined ? p.conteoTotal - p.stockSistema : '',
+                    'Estado': p.estado || 'PENDIENTE'
+                }));
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(datos);
+
+            ws['!cols'] = [
+                { wch: 20 }, { wch: 20 }, { wch: 15 },
+                { wch: 15 }, { wch: 35 }, { wch: 15 },
+                { wch: 15 }, { wch: 18 }, { wch: 15 },
+                { wch: 12 }, { wch: 12 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Historial Conteos');
+
+            XLSX.writeFile(wb, `historial_conteos_cigarrillos_${new Date().toISOString().split('T')[0]}.xlsx`);
+            mostrarNotificacion('Historial exportado correctamente', 'success');
+        }
+    </script>
+</body>
+</html>

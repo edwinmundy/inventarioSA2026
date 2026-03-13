@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario - Local</title>
+    <link rel="stylesheet" href="css/estilos.css">
+    <style>
+        /* Estilos adicionales para el dashboard mejorado */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .mini-stat {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .mini-stat:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .mini-stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .mini-stat-value.alert {
+            color: var(--danger);
+        }
+
+        .mini-stat-value.warning {
+            color: var(--warning);
+        }
+
+        .mini-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 968px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .dashboard-panel {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .panel-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .panel-inventory .panel-icon {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+
+        .panel-inventory .panel-title h2 {
+            color: #3b82f6;
+        }
+
+        .panel-admin .panel-icon {
+            background: #fffbeb;
+            color: #f59e0b;
+        }
+
+        .panel-admin .panel-title h2 {
+            color: #f59e0b;
+        }
+
+        .panel-cigarrillos .panel-icon {
+            background: #f0fdf4;
+            color: #10b981;
+        }
+
+        .panel-cigarrillos .panel-title h2 {
+            color: #10b981;
+        }
+
+        .panel-title p {
+            margin: 4px 0 0 0;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .category-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: var(--bg);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .category-card:hover {
+            transform: translateX(8px);
+            box-shadow: var(--shadow);
+            background: #eff6ff;
+            border-left-color: #3b82f6;
+        }
+
+        .category-card.critical {
+            border-left-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .category-card.warning {
+            border-left-color: var(--warning);
+            background: #fffbeb;
+        }
+
+        .category-icon {
+            font-size: 2.5rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
+
+        .category-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .category-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .category-stats {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .category-alert {
+            font-size: 0.85rem;
+            color: var(--danger);
+            font-weight: 600;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .category-arrow {
+            font-size: 1.5rem;
+            color: var(--text-light);
+            opacity: 0;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .category-card:hover .category-arrow {
+            opacity: 1;
+            transform: translateX(4px);
+            color: #3b82f6;
+        }
+
+        .admin-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .admin-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg);
+            border-radius: 10px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .admin-card:hover {
+            background: #fffbeb;
+            border-color: #f59e0b;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .admin-icon {
+            font-size: 1.5rem;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+
+        .admin-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .admin-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 2px;
+            color: var(--text);
+        }
+
+        .admin-desc {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .admin-arrow {
+            color: var(--text-light);
+            opacity: 0;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .admin-card:hover .admin-arrow {
+            opacity: 1;
+            color: #f59e0b;
+        }
+
+        .cigarrillos-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 24px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 12px;
+            border: 2px solid #86efac;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .cigarrillos-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+            border-color: #22c55e;
+        }
+
+        .cigarrillos-icon {
+            font-size: 3rem;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .cigarrillos-info h3 {
+            font-size: 1.3rem;
+            color: #166534;
+            margin-bottom: 4px;
+        }
+
+        .cigarrillos-info p {
+            color: #15803d;
+            font-size: 0.95rem;
+        }
+
+        .cigarrillos-arrow {
+            font-size: 1.5rem;
+            color: #22c55e;
+        }
+
+        .badge-cigarrillos {
+            background: #22c55e;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .ultimo-conteo {
+            margin-top: 16px;
+            padding: 16px;
+            background: white;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .ultimo-conteo strong {
+            color: #166534;
+        }
+
+        .conteo-stats-mini {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+        }
+
+        .conteo-stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .quick-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .category-card {
+                padding: 16px;
+            }
+
+            .category-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 2rem;
+            }
+
+            .category-name {
+                font-size: 1.1rem;
+            }
+
+            .admin-card {
+                padding: 14px;
+            }
+
+            .cigarrillos-card {
+                padding: 16px;
+            }
+
+            .cigarrillos-icon {
+                width: 56px;
+                height: 56px;
+                font-size: 2.5rem;
+            }
+
+            .conteo-stats-mini {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body autocomplete="off">
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <h1>🍞 Sistema de Control de Inventarios</h1>
+                <div id="user-info"></div>
+            </div>
+
+            <nav class="main-nav" id="main-nav">
+                <!-- Se carga dinámicamente desde app.js -->
+            </nav>
+        </header>
+
+        <main autocomplete="off">
+            <!-- Estadísticas Rápidas -->
+            <div class="quick-stats">
+                <div class="mini-stat">
+                    <div class="mini-stat-value" id="total-items">0</div>
+                    <div class="mini-stat-label">Total Items</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-value alert" id="total-alertas">0</div>
+                    <div class="mini-stat-label">Stock Bajo</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-value" id="total-cajeros">0</div>
+                    <div class="mini-stat-label">Cajeros</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-value warning" id="total-conteos">0</div>
+                    <div class="mini-stat-label">Conteos Hoy</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Dividido -->
+            <div class="dashboard-container">
+                <!-- PANEL IZQUIERDO: INVENTARIO -->
+                <section class="dashboard-panel panel-inventory">
+                    <div class="panel-header">
+                        <div class="panel-icon">📦</div>
+                        <div class="panel-title">
+                            <h2>Gestión de Inventario</h2>
+                            <p>Control de stock por categorías</p>
+                        </div>
+                    </div>
+
+                    <div class="category-list" id="inventory-categories">
+                        <!-- Se carga dinámicamente -->
+                    </div>
+                </section>
+
+                <!-- PANEL DERECHO: ADMINISTRACIÓN Y CIGARRILLOS -->
+                <section>
+                    <!-- SECCIÓN CIGARRILLOS -->
+                    <div class="dashboard-panel panel-cigarrillos" style="margin-bottom: 24px;">
+                        <div class="panel-header">
+                            <div class="panel-icon">🚬</div>
+                            <div class="panel-title">
+                                <h2>Conteo de Cigarrillos <span class="badge-cigarrillos">3 EN 1</span></h2>
+                                <p>Bodega + Exhibición = Total</p>
+                            </div>
+                        </div>
+
+                        <a href="conteo_cigarrillos.html" class="cigarrillos-card">
+                            <div class="cigarrillos-icon">🚬</div>
+                            <div class="cigarrillos-info" style="flex: 1;">
+                                <h3>Iniciar Conteo de Cigarrillos</h3>
+                                <p>Conteo dividido: Bodega 🏭 | Exhibición 🏪 | Total 📊</p>
+                            </div>
+                            <span class="cigarrillos-arrow">→</span>
+                        </a>
+
+                        <div class="ultimo-conteo" id="ultimo-conteo-cigarrillos" style="display: none;">
+                            <strong>Último conteo:</strong> <span id="info-ultimo-conteo">-</span>
+                            <div class="conteo-stats-mini" id="stats-ultimo-conteo"></div>
+                        </div>
+
+                        <div style="display: flex; gap: 8px; margin-top: 12px;">
+                            <a href="conteo_cigarrillos.html" class="btn-primary" style="flex: 1; text-align: center; text-decoration: none;">
+                                📊 Nuevo Conteo
+                            </a>
+                            <a href="historial_conteos.html" class="btn-secondary" style="flex: 1; text-align: center; text-decoration: none; background: var(--secondary); color: white; padding: 12px; border-radius: 8px;">
+                                📜 Historial
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- PANEL ADMINISTRACIÓN -->
+                    <section class="dashboard-panel panel-admin">
+                        <div class="panel-header">
+                            <div class="panel-icon">⚙️</div>
+                            <div class="panel-title">
+                                <h2>Administración</h2>
+                                <p>Gestión del sistema</p>
+                            </div>
+                        </div>
+
+                        <div class="admin-list">
+                            <a href="cajeros.html" class="admin-card">
+                                <div class="admin-icon">👤</div>
+                                <div class="admin-info">
+                                    <div class="admin-name">Cajeros</div>
+                                    <div class="admin-desc">Administrar usuarios y permisos</div>
+                                </div>
+                                <span class="admin-arrow">→</span>
+                            </a>
+
+                            <a href="auditoria.html" class="admin-card">
+                                <div class="admin-icon">📋</div>
+                                <div class="admin-info">
+                                    <div class="admin-name">Auditoría</div>
+                                    <div class="admin-desc">Historial de movimientos</div>
+                                </div>
+                                <span class="admin-arrow">→</span>
+                            </a>
+
+                            <a href="inventario.html" class="admin-card">
+                                <div class="admin-icon">📊</div>
+                                <div class="admin-info">
+                                    <div class="admin-name">Reportes</div>
+                                    <div class="admin-desc">Vista general y exportación</div>
+                                </div>
+                                <span class="admin-arrow">→</span>
+                            </a>
+
+                            <a href="categorias.html" class="admin-card">
+                                <div class="admin-icon">🏷️</div>
+                                <div class="admin-info">
+                                    <div class="admin-name">Categorías</div>
+                                    <div class="admin-desc">Crear o eliminar categorías</div>
+                                </div>
+                                <span class="admin-arrow">→</span>
+                            </a>
+                        </div>
+                    </section>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // ✅ FUNCIÓN PARA CARGAR DASHBOARD DIVIDIDO
+        function cargarDashboardDividido() {
+            const contenedor = document.getElementById('inventory-categories');
+            if (!contenedor) return;
+
+            const categorias = obtenerCategorias();
+
+            let totalItems = 0;
+            let totalAlertas = 0;
+
+            const html = categorias.map(cat => {
+                const items = obtenerDatos(cat.id);
+                const count = items.length;
+                const alertas = items.filter(i => i.cantidad <= i.minimo).length;
+                const criticos = items.filter(i => i.cantidad <= i.minimo * 0.5).length;
+
+                totalItems += count;
+                totalAlertas += alertas;
+
+                let estadoClase = '';
+                let mensajeAlerta = '';
+
+                if (criticos > 0) {
+                    estadoClase = 'critical';
+                    mensajeAlerta = `🔴 ${criticos} crítico${criticos !== 1 ? 's' : ''}`;
+                } else if (alertas > 0) {
+                    estadoClase = 'warning';
+                    mensajeAlerta = `⚠️ ${alertas} con stock bajo`;
+                }
+
+                return `
+                    <a href="categoria.html?cat=${cat.id}" class="category-card ${estadoClase}">
+                        <div class="category-icon">${cat.icono}</div>
+                        <div class="category-info">
+                            <div class="category-name">${cat.nombre}</div>
+                            <div class="category-stats">${count} items • ${cat.descripcion || 'Sin descripción'}</div>
+                            ${mensajeAlerta ? `<div class="category-alert">${mensajeAlerta}</div>` : ''}
+                        </div>
+                        <span class="category-arrow">→</span>
+                    </a>
+                `;
+            }).join('');
+
+            contenedor.innerHTML = html || `
+                <div class="empty-state" style="grid-column: 1/-1;">
+                    <div class="empty-state-icon">📦</div>
+                    <p>No hay categorías configuradas</p>
+                    <a href="categorias.html" class="btn-primary" style="margin-top: 16px;">Crear Categoría</a>
+                </div>
+            `;
+
+            // Actualizar estadísticas
+            const totalItemsSpan = document.getElementById('total-items');
+            const totalAlertasSpan = document.getElementById('total-alertas');
+            const totalCajerosSpan = document.getElementById('total-cajeros');
+
+            if (totalItemsSpan) totalItemsSpan.textContent = totalItems;
+            if (totalAlertasSpan) totalAlertasSpan.textContent = totalAlertas;
+
+            const cajeros = obtenerDatos('cajeros');
+            if (totalCajerosSpan) totalCajerosSpan.textContent = cajeros.length;
+        }
+
+        // ✅ FUNCIÓN PARA CARGAR INFO DE CIGARRILLOS (ACTUALIZADA)
+        function cargarInfoCigarrillos() {
+            // Verificar si hay conteo en progreso
+            const conteoEnProgreso = obtenerDatos('conteo_en_progreso');
+            const historial = obtenerDatos('historial_conteos') || [];
+
+            const contenedorUltimo = document.getElementById('ultimo-conteo-cigarrillos');
+            const infoUltimo = document.getElementById('info-ultimo-conteo');
+            const statsUltimo = document.getElementById('stats-ultimo-conteo');
+            const conteoHoy = document.getElementById('total-conteos');
+
+            let conteosHoy = 0;
+            const hoy = new Date().toDateString();
+
+            // Contar conteos de hoy
+            historial.forEach(c => {
+                if (new Date(c.fechaFin || c.fecha).toDateString() === hoy) {
+                    conteosHoy++;
+                }
+            });
+
+            if (conteoHoy) conteoHoy.textContent = conteosHoy;
+
+            // Mostrar información del último conteo o conteo en progreso
+            if (conteoEnProgreso && conteoEnProgreso.productos && conteoEnProgreso.productos.length > 0) {
+                const productos = conteoEnProgreso.productos;
+                const completados = productos.filter(p => p.conteoTotal !== null && p.conteoTotal !== undefined).length;
+                const total = productos.length;
+                const pendientes = total - completados;
+
+                contenedorUltimo.style.display = 'block';
+                infoUltimo.innerHTML = `
+                    <span style="color: var(--warning);">🟡 En progreso</span> • 
+                    ${completados}/${total} productos • 
+                    Cajero: ${conteoEnProgreso.cajeroNombre}
+                `;
+
+                // Calcular estadísticas del conteo en progreso
+                const ok = productos.filter(p => p.estado === 'OK').length;
+                const ingresar = productos.filter(p => p.estado === 'INGRESAR').length;
+                const egresar = productos.filter(p => p.estado === 'EGRESAR').length;
+
+                statsUltimo.innerHTML = `
+                    <span class="conteo-stat-item">✅ OK: ${ok}</span>
+                    <span class="conteo-stat-item">📥 Ingresar: ${ingresar}</span>
+                    <span class="conteo-stat-item">📤 Egresar: ${egresar}</span>
+                    <span class="conteo-stat-item">⏳ Pendientes: ${pendientes}</span>
+                `;
+
+            } else if (historial.length > 0) {
+                const ultimo = historial[0];
+                const fecha = new Date(ultimo.fechaFin || ultimo.fecha);
+                const fechaStr = fecha.toDateString() === hoy ? 'Hoy' : fecha.toLocaleDateString('es-ES');
+                const resumen = ultimo.resumen || {};
+
+                contenedorUltimo.style.display = 'block';
+                infoUltimo.innerHTML = `
+                    <span style="color: var(--success);">✓ Completado</span> • 
+                    ${fechaStr} • 
+                    ${ultimo.cajeroNombre}
+                `;
+
+                statsUltimo.innerHTML = `
+                    <span class="conteo-stat-item">✅ OK: ${resumen.ok || 0}</span>
+                    <span class="conteo-stat-item">📥 Ingresar: ${resumen.ingresar || 0}</span>
+                    <span class="conteo-stat-item">📤 Egresar: ${resumen.egresar || 0}</span>
+                    <span class="conteo-stat-item">📦 Total: ${resumen.total || 0}</span>
+                `;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar datos base
+            if (!localStorage.getItem('inventario_cajeros')) {
+                inicializarDatos();
+            } else {
+                actualizarNavegacion();
+            }
+
+            // Verificar sesión
+            if (!verificarSesion()) return;
+
+            // Cargar dashboards
+            inicializarDatos();
+            cargarDashboardDividido();
+            cargarInfoCigarrillos();
+
+            // Desactivar autocomplete global
+            document.querySelectorAll('input, textarea, select').forEach(el => {
+                el.setAttribute('autocomplete','off');
+                el.setAttribute('autocorrect','off');
+                el.setAttribute('autocapitalize','off');
+                el.setAttribute('spellcheck','false');
+            });
+        });
+    </script>
+</body>
+</html>

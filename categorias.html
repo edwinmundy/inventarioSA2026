@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Categorías - Inventario</title>
+    <link rel="stylesheet" href="css/estilos.css">
+    <style>
+        /* Estilos específicos para la página de categorías */
+        .categorias-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+        
+        .categoria-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .categoria-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .categoria-card.protegida {
+            border-left-color: var(--warning);
+            background: linear-gradient(to right, #fef3c7, var(--card-bg));
+        }
+        
+        .categoria-icon-display {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            text-align: center;
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        
+        .categoria-nombre {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .categoria-id {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            font-family: monospace;
+            background: var(--bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        
+        .categoria-desc {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            min-height: 20px;
+        }
+        
+        .categoria-stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        
+        .categoria-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .badge-protegida {
+            background: var(--warning);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+        }
+        
+        /* Formulario mejorado */
+        .form-nueva-cat {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+        
+        .form-row {
+           display: grid;
+          grid-template-columns: 1fr 1fr 1fr 100px;  /* ← Todos iguales */
+          gap: 14px;
+          align-items: end;
+        }
+        
+        @media (max-width: 968px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Selector de Iconos Compacto */
+        .icon-selector-container {
+            position: relative;
+        }
+        
+        .icon-trigger {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .icon-trigger:hover, .icon-trigger.active {
+            border-color: var(--primary);
+        }
+        
+        .selected-icon-preview {
+            font-size: 1.4rem;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+        
+        .icon-trigger-text {
+            flex: 1;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+        
+        .icon-arrow {
+            color: var(--text-light);
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .icon-trigger.active .icon-arrow {
+            transform: rotate(180deg);
+        }
+        
+        /* Dropdown compacto */
+        .icon-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 6px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            max-height: 320px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            border: 2px solid var(--border);
+        }
+        
+        .icon-dropdown.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .icon-category {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .icon-category:last-child {
+            border-bottom: none;
+        }
+        
+        .icon-category-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+        }
+        
+        .icon-option {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            background: var(--bg);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 2px solid transparent;
+        }
+        
+        .icon-option:hover {
+            background: #dbeafe;
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+        
+        .icon-option.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        /* Input oculto */
+        #cat-icono-input, #edit-cat-icono-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body autocomplete="off">
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <h1>⚙️ Gestión de Categorías</h1>
+                <div id="user-info"></div>
+            </div>
+            <nav class="main-nav" id="main-nav">
+                <!-- Se carga dinámicamente -->
+            </nav>
+        </header>
+
+        <main>
+            <!-- Formulario de Nueva Categoría -->
+            <div class="form-nueva-cat">
+                <h3 style="margin-bottom: 20px;">➕ Nueva Categoría</h3>
+                
+                <form id="form-categoria" onsubmit="return false;">
+                    <div class="form-row">
+                        <!-- ID -->
+                        <div class="form-group">
+                            <label>ID único:</label>
+                            <input type="text" id="cat-id" placeholder="ej: bebidas" required 
+                                   pattern="[a-z0-9-]+" title="Solo minúsculas, números y guiones">
+                        </div>
+                        
+                        <!-- Selector de Icono -->
+                        <div class="form-group icon-selector-container">
+                            <label>Icono:</label>
+                            <input type="hidden" id="cat-icono-input" value="📦">
+                            
+                            <div class="icon-trigger" id="icon-trigger" onclick="toggleIconDropdown()">
+                                <span class="selected-icon-preview" id="selected-icon-display">📦</span>
+                                <span class="icon-trigger-text">Seleccionar...</span>
+                                <span class="icon-arrow">▼</span>
+                            </div>
+                            
+                            <div class="icon-dropdown" id="icon-dropdown">
+                                <!-- Comida y Bebida -->
+                                <div class="icon-category">
+                                    <div class="icon-category-title">🍽️ Comida y Bebida</div>
+                                    <div class="icon-grid">
+                                        <div class="icon-option" onclick="seleccionarIcono('🍞')" title="Pan">🍞</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥖')" title="Baguette">🥖</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥐')" title="Croissant">🥐</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥨')" title="Pretzel">🥨</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥯')" title="Bagel">🥯</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥞')" title="Panqueques">🥞</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧇')" title="Waffles">🧇</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥓')" title="Tocino">🥓</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥩')" title="Carne">🥩</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍗')" title="Pollo">🍗</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍖')" title="Hueso">🍖</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌭')" title="Hot Dog">🌭</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍔')" title="Hamburguesa">🍔</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍟')" title="Papas fritas">🍟</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍕')" title="Pizza">🍕</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥪')" title="Sándwich">🥪</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥙')" title="Kebab">🥙</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧆')" title="Falafel">🧆</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌮')" title="Taco">🌮</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌯')" title="Burrito">🌯</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥗')" title="Ensalada">🥗</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥘')" title="Paella">🥘</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥫')" title="Enlatado">🥫</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍝')" title="Spaghetti">🍝</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍜')" title="Ramen">🍜</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍲')" title="Sopa">🍲</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍛')" title="Curry">🍛</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍣')" title="Sushi">🍣</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍱')" title="Bento">🍱</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥟')" title="Dumpling">🥟</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍤')" title="Camarón">🍤</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍙')" title="Onigiri">🍙</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍚')" title="Arroz">🍚</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍘')" title="Galleta arroz">🍘</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍥')" title="Narutomaki">🍥</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥠')" title="Galleta fortuna">🥠</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥮')" title="Pastel luna">🥮</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍢')" title="Oden">🍢</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍡')" title="Dango">🍡</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍧')" title="Raspado">🍧</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍨')" title="Helado">🍨</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍦')" title="Soft serve">🍦</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥧')" title="Pie">🥧</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧁')" title="Cupcake">🧁</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍰')" title="Torta">🍰</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🎂')" title="Cumpleaños">🎂</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍮')" title="Flan">🍮</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍭')" title="Chupetín">🍭</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍬')" title="Caramelo">🍬</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍫')" title="Chocolate">🍫</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍿')" title="Popcorn">🍿</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍩')" title="Dona">🍩</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍪')" title="Galleta">🍪</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌰')" title="Castaña">🌰</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥜')" title="Maní">🥜</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍯')" title="Miel">🍯</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥛')" title="Leche">🥛</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍼')" title="Biberón">🍼</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('☕')" title="Café">☕</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍵')" title="Té">🍵</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧃')" title="Jugo">🧃</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥤')" title="Vaso con popote">🥤</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍶')" title="Sake">🍶</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍺')" title="Cerveza">🍺</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍻')" title="Brindis">🍻</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥂')" title="Champagne">🥂</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍷')" title="Vino">🍷</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥃')" title="Whisky">🥃</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍸')" title="Cóctel">🍸</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍹')" title="Tropical">🍹</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧉')" title="Mate">🧉</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍾')" title="Champaña">🍾</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧊')" title="Hielo">🧊</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥄')" title="Cuchara">🥄</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍴')" title="Cubiertos">🍴</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍽️')" title="Plato">🍽️</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥣')" title="Bowl">🥣</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥡')" title="Para llevar">🥡</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥢')" title="Palillos">🥢</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧂')" title="Sal">🧂</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Frutas y Verduras -->
+                                <div class="icon-category">
+                                    <div class="icon-category-title">🍎 Frutas y Verduras</div>
+                                    <div class="icon-grid">
+                                        <div class="icon-option" onclick="seleccionarIcono('🍏')" title="Manzana verde">🍏</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍎')" title="Manzana roja">🍎</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍐')" title="Pera">🍐</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍊')" title="Naranja">🍊</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍋')" title="Limón">🍋</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍌')" title="Plátano">🍌</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍉')" title="Sandía">🍉</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍇')" title="Uvas">🍇</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍓')" title="Frutilla">🍓</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫐')" title="Arándanos">🫐</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍈')" title="Melón">🍈</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍒')" title="Cerezas">🍒</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍑')" title="Durazno">🍑</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍍')" title="Piña">🍍</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥝')" title="Kiwi">🥝</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥥')" title="Coco">🥥</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥑')" title="Palta">🥑</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍆')" title="Berenjena">🍆</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥔')" title="Papa">🥔</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥕')" title="Zanahoria">🥕</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌽')" title="Choclo">🌽</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌶️')" title="Ají">🌶️</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫑')" title="Pimentón">🫑</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥒')" title="Pepino">🥒</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥬')" title="Vegetal hoja">🥬</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥦')" title="Brócoli">🥦</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧄')" title="Ajo">🧄</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧅')" title="Cebolla">🧅</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍄')" title="Champiñón">🍄</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥜')" title="Maní">🥜</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌰')" title="Castaña">🌰</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍞')" title="Pan">🍞</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥐')" title="Croissant">🥐</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥖')" title="Baguette">🥖</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫓')" title="Pan plano">🫓</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥨')" title="Pretzel">🥨</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥯')" title="Bagel">🥯</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥞')" title="Panqueques">🥞</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧇')" title="Waffles">🧇</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧀')" title="Queso">🧀</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍖')" title="Carne">🍖</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍗')" title="Pollo">🍗</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥩')" title="Corte">🥩</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥓')" title="Tocino">🥓</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍔')" title="Hamburguesa">🍔</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍟')" title="Papas">🍟</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍕')" title="Pizza">🍕</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌭')" title="Completo">🌭</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥪')" title="Sándwich">🥪</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌮')" title="Taco">🌮</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌯')" title="Burrito">🌯</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫔')" title="Tamal">🫔</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥙')" title="Kebab">🥙</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧆')" title="Falafel">🧆</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥚')" title="Huevo">🥚</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍳')" title="Cocinando">🍳</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥘')" title="Paella">🥘</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍲')" title="Olla">🍲</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫕')" title="Fondue">🫕</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥣')" title="Bowl">🥣</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥗')" title="Ensalada">🥗</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍿')" title="Popcorn">🍿</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧈')" title="Mantequilla">🧈</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧂')" title="Sal">🧂</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥫')" title="Enlatado">🥫</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍱')" title="Bento">🍱</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍘')" title="Galleta arroz">🍘</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍙')" title="Onigiri">🍙</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍚')" title="Arroz">🍚</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍛')" title="Curry">🍛</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍜')" title="Ramen">🍜</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍝')" title="Spaghetti">🍝</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍠')" title="Batata">🍠</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍢')" title="Oden">🍢</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍡')" title="Dango">🍡</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍧')" title="Raspado">🍧</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍨')" title="Helado">🍨</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍦')" title="Soft">🍦</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥧')" title="Pie">🥧</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧁')" title="Cupcake">🧁</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍰')" title="Torta">🍰</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🎂')" title="Cumpleaños">🎂</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍮')" title="Flan">🍮</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍭')" title="Chupetín">🍭</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍬')" title="Caramelo">🍬</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍫')" title="Chocolate">🍫</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍿')" title="Popcorn">🍿</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍩')" title="Dona">🍩</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍪')" title="Galleta">🍪</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🌰')" title="Castaña">🌰</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥜')" title="Maní">🥜</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍯')" title="Miel">🍯</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍼')" title="Biberón">🍼</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥛')" title="Leche">🥛</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('☕')" title="Café">☕</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫖')" title="Tetera">🫖</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍵')" title="Té">🍵</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍶')" title="Sake">🍶</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍾')" title="Champaña">🍾</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍷')" title="Vino">🍷</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍸')" title="Cóctel">🍸</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍹')" title="Tropical">🍹</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍺')" title="Cerveza">🍺</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍻')" title="Brindis">🍻</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥂')" title="Champagne">🥂</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥃')" title="Whisky">🥃</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫗')" title="Vertiendo">🫗</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥤')" title="Vaso">🥤</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧋')" title="Bubble tea">🧋</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧃')" title="Jugo">🧃</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧉')" title="Mate">🧉</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧊')" title="Hielo">🧊</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥢')" title="Palillos">🥢</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍽️')" title="Plato">🍽️</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍴')" title="Cubiertos">🍴</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥄')" title="Cuchara">🥄</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🔪')" title="Cuchillo">🔪</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🏺')" title="Ánfora">🏺</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Bebidas -->
+                                <div class="icon-category">
+                                    <div class="icon-category-title">🥤 Bebidas</div>
+                                    <div class="icon-grid">
+                                        <div class="icon-option" onclick="seleccionarIcono('💧')" title="Agua">💧</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥤')" title="Vaso">🥤</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧃')" title="Jugo">🧃</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧉')" title="Mate">🧉</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('☕')" title="Café">☕</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍵')" title="Té">🍵</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫖')" title="Tetera">🫖</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍶')" title="Sake">🍶</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍺')" title="Cerveza">🍺</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍻')" title="Brindis">🍻</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥂')" title="Champagne">🥂</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍷')" title="Vino">🍷</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥃')" title="Whisky">🥃</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍸')" title="Cóctel">🍸</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍹')" title="Tropical">🍹</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧊')" title="Hielo">🧊</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥛')" title="Leche">🥛</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍼')" title="Biberón">🍼</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍾')" title="Champaña">🍾</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🧋')" title="Bubble tea">🧋</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🫗')" title="Vertiendo">🫗</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍯')" title="Miel">🍯</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🥄')" title="Cuchara">🥄</div>
+                                        <div class="icon-option" onclick="seleccionarIcono('🍴')" title="Cubiertos">🍴</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Nombre -->
+                        <div class="form-group">
+                            <label>Nombre visible:</label>
+                            <input type="text" id="cat-nombre" placeholder="Nombre de la categoría" required>
+                        </div>
+                        
+                        <!-- Botón -->
+                        <div class="form-group">
+                            <button type="button" onclick="crearNuevaCategoria()" class="btn-primary" style="width: 100%; height: 46px;">
+                                ➕ Crear
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Descripción -->
+                    <div class="form-group" style="margin-top: 12px;">
+                        <label>Descripción (opcional):</label>
+                        <input type="text" id="cat-desc" placeholder="Breve descripción de la categoría">
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lista de Categorías Existentes -->
+            <div class="section-header">
+                <h2>Categorías Existentes</h2>
+                <span id="total-categorias" class="badge">0 categorías</span>
+            </div>
+
+            <div class="categorias-grid" id="categorias-grid">
+                <!-- Se carga dinámicamente -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para editar categoría -->
+    <div id="modal-editar-cat" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalCat()">&times;</span>
+            <h3>Editar Categoría</h3>
+            <form id="form-editar-cat" onsubmit="return false;">
+                <input type="hidden" id="edit-cat-id-original">
+                
+                <div class="form-group">
+                    <label>ID (no editable):</label>
+                    <input type="text" id="edit-cat-id" readonly style="background: #f1f5f9;">
+                </div>
+                
+                <!-- Selector de icono para edición -->
+                <div class="form-group icon-selector-container">
+                    <label>Icono:</label>
+                    <input type="hidden" id="edit-cat-icono-input">
+                    
+                    <div class="icon-trigger" id="edit-icon-trigger" onclick="toggleEditIconDropdown()">
+                        <span class="selected-icon-preview" id="edit-selected-icon-display">📦</span>
+                        <span class="icon-trigger-text">Cambiar icono...</span>
+                        <span class="icon-arrow">▼</span>
+                    </div>
+                    
+                    <div class="icon-dropdown" id="edit-icon-dropdown">
+                        <!-- Comida y Bebida -->
+                        <div class="icon-category">
+                            <div class="icon-category-title">🍽️ Comida y Bebida</div>
+                            <div class="icon-grid" id="edit-grid-comida">
+                                <!-- Se genera con JS -->
+                            </div>
+                        </div>
+                        
+                        <!-- Frutas y Verduras -->
+                        <div class="icon-category">
+                            <div class="icon-category-title">🍎 Frutas y Verduras</div>
+                            <div class="icon-grid" id="edit-grid-frutas">
+                                <!-- Se genera con JS -->
+                            </div>
+                        </div>
+                        
+                        <!-- Bebidas -->
+                        <div class="icon-category">
+                            <div class="icon-category-title">🥤 Bebidas</div>
+                            <div class="icon-grid" id="edit-grid-bebidas">
+                                <!-- Se genera con JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Nombre:</label>
+                    <input type="text" id="edit-cat-nombre" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Descripción:</label>
+                    <input type="text" id="edit-cat-desc">
+                </div>
+                
+                <button type="button" onclick="guardarEdicionCategoria()" class="btn-primary">💾 Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Iconos simplificados - solo 3 categorías
+        const ICONOS_CATEGORIAS = {
+            'Comida y Bebida': ['🍞', '🥖', '🥐', '🥨', '🥯', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🌭', '🍔', '🍟', '🍕', '🥪', '🥙', '🧆', '🌮', '🌯', '🥗', '🥘', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '☕', '🍵', '🧃', '🥤', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧉', '🍾', '🧊', '🥄', '🍴', '🍽️', '🥣', '🥡', '🥢', '🧂'],
+            
+            'Frutas y Verduras': ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🍍', '🥝', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰'],
+            
+            'Bebidas': ['💧', '🥤', '🧃', '🧉', '☕', '🍵', '🫖', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧊', '🥛', '🍼', '🍾', '🧋', '🫗', '🍯']
+        };
+
+        let iconoSeleccionado = '📦';
+        let iconoEditSeleccionado = '📦';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!verificarSesion()) return;
+            inicializarDatos();
+            cargarCategoriasAdmin();
+            generarIconosEdicion();
+        });
+
+        function generarIconosEdicion() {
+            // Generar grids para edición
+            const comidaContainer = document.getElementById('edit-grid-comida');
+            const frutasContainer = document.getElementById('edit-grid-frutas');
+            const bebidasContainer = document.getElementById('edit-grid-bebidas');
+            
+            if (comidaContainer) {
+                comidaContainer.innerHTML = ICONOS_CATEGORIAS['Comida y Bebida']
+                    .map(icon => `<div class="icon-option" onclick="seleccionarEditIcono('${icon}')" title="${icon}">${icon}</div>`)
+                    .join('');
+            }
+            
+            if (frutasContainer) {
+                frutasContainer.innerHTML = ICONOS_CATEGORIAS['Frutas y Verduras']
+                    .map(icon => `<div class="icon-option" onclick="seleccionarEditIcono('${icon}')" title="${icon}">${icon}</div>`)
+                    .join('');
+            }
+            
+            if (bebidasContainer) {
+                bebidasContainer.innerHTML = ICONOS_CATEGORIAS['Bebidas']
+                    .map(icon => `<div class="icon-option" onclick="seleccionarEditIcono('${icon}')" title="${icon}">${icon}</div>`)
+                    .join('');
+            }
+        }
+
+        function toggleIconDropdown() {
+            const dropdown = document.getElementById('icon-dropdown');
+            const trigger = document.getElementById('icon-trigger');
+            
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+                trigger.classList.remove('active');
+            } else {
+                dropdown.classList.add('show');
+                trigger.classList.add('active');
+            }
+        }
+
+        function toggleEditIconDropdown() {
+            const dropdown = document.getElementById('edit-icon-dropdown');
+            const trigger = document.getElementById('edit-icon-trigger');
+            
+            if (dropdown.classList.contains('show')) {
+                dropdown.classList.remove('show');
+                trigger.classList.remove('active');
+            } else {
+                dropdown.classList.add('show');
+                trigger.classList.add('active');
+            }
+        }
+
+        function seleccionarIcono(icono) {
+            iconoSeleccionado = icono;
+            document.getElementById('cat-icono-input').value = icono;
+            document.getElementById('selected-icon-display').textContent = icono;
+            document.querySelector('#icon-trigger .icon-trigger-text').textContent = icono;
+            
+            // Cerrar dropdown
+            document.getElementById('icon-dropdown').classList.remove('show');
+            document.getElementById('icon-trigger').classList.remove('active');
+            
+            // Marcar seleccionado visualmente
+            document.querySelectorAll('#icon-dropdown .icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.textContent === icono) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+
+        function seleccionarEditIcono(icono) {
+            iconoEditSeleccionado = icono;
+            document.getElementById('edit-cat-icono-input').value = icono;
+            document.getElementById('edit-selected-icon-display').textContent = icono;
+            document.querySelector('#edit-icon-trigger .icon-trigger-text').textContent = icono;
+            
+            // Cerrar dropdown
+            document.getElementById('edit-icon-dropdown').classList.remove('show');
+            document.getElementById('edit-icon-trigger').classList.remove('active');
+            
+            // Marcar seleccionado
+            document.querySelectorAll('#edit-icon-dropdown .icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.textContent === icono) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+
+        // Cerrar dropdowns al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            const container = document.querySelector('.icon-selector-container');
+            const editContainer = document.querySelector('#form-editar-cat .icon-selector-container');
+            
+            if (container && !container.contains(e.target)) {
+                document.getElementById('icon-dropdown')?.classList.remove('show');
+                document.getElementById('icon-trigger')?.classList.remove('active');
+            }
+            
+            if (editContainer && !editContainer.contains(e.target)) {
+                document.getElementById('edit-icon-dropdown')?.classList.remove('show');
+                document.getElementById('edit-icon-trigger')?.classList.remove('active');
+            }
+        });
+
+        function cargarCategoriasAdmin() {
+    const grid = document.getElementById('categorias-grid');
+    const categorias = obtenerCategorias();
+    
+    document.getElementById('total-categorias').textContent = 
+        `${categorias.length} categoría${categorias.length !== 1 ? 's' : ''}`;
+    
+    if (categorias.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1/-1;">
+                <div class="empty-state-icon">📁</div>
+                <h3>No hay categorías</h3>
+                <p>Crea tu primera categoría usando el formulario superior</p>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = categorias.map(cat => {
+        const items = obtenerDatos(cat.id);
+        const count = items.length;
+        const alertas = items.filter(i => i.cantidad <= i.minimo).length;
+        const criticos = items.filter(i => i.cantidad <= i.minimo * 0.5).length;
+        
+        let estadoClase = '';
+        let mensajeAlerta = '';
+        
+        if (criticos > 0) {
+            estadoClase = 'protegida';
+            mensajeAlerta = `🔴 ${criticos} crítico${criticos !== 1 ? 's' : ''}`;
+        } else if (alertas > 0) {
+            mensajeAlerta = `⚠️ ${alertas} con stock bajo`;
+        }
+        
+        return `
+            <div class="categoria-card ${estadoClase}">
+                ${cat.protegida ? '<span class="badge-protegida">🔒 Protegida</span>' : ''}
+                <div class="categoria-icon-display">${cat.icono}</div>
+                <div class="categoria-nombre">${cat.nombre}</div>
+                <div class="categoria-id">${cat.id}</div>
+                <div class="categoria-desc">${cat.descripcion || 'Sin descripción'}</div>
+                
+                <div class="categoria-stats">
+                    <span>📦 ${count} items</span>
+                    ${alertas > 0 ? `<span style="color: var(--danger);">⚠️ ${alertas} alertas</span>` : ''}
+                </div>
+                
+                <div class="categoria-actions">
+                    <!-- CAMBIO CLAVE: Ahora usa verCategoria() -->
+                    <button onclick="verCategoria('${cat.id}')" class="btn-icon btn-edit" title="Ver">👁️</button>
+                    <button onclick="abrirEditarCategoria('${cat.id}')" class="btn-icon btn-edit" title="Editar">✏️</button>
+                    ${!cat.protegida ? `
+                        <button onclick="eliminarCategoria('${cat.id}')" class="btn-icon btn-delete" title="Eliminar">🗑️</button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+        function crearNuevaCategoria() {
+            if (!verificarSesion()) return;
+            const id = document.getElementById('cat-id').value.toLowerCase().trim();
+            const nombre = document.getElementById('cat-nombre').value.trim();
+            const icono = iconoSeleccionado;
+            const desc = document.getElementById('cat-desc').value.trim();
+    
+    if (!id || !nombre) {
+        mostrarNotificacion('ID y Nombre son obligatorios', 'error');
+        return;
+    }
+    
+    if (crearCategoria(id, nombre, icono, desc)) {
+        // Limpiar formulario
+        document.getElementById('form-categoria').reset();
+        iconoSeleccionado = '📦';
+        document.getElementById('cat-icono-input').value = '📦';
+        document.getElementById('selected-icon-display').textContent = '📦';
+        document.querySelector('#icon-trigger .icon-trigger-text').textContent = 'Seleccionar...';
+        
+        // Recargar lista
+        cargarCategoriasAdmin();
+    }
+}
+
+        function abrirEditarCategoria(id) {
+            const categorias = obtenerCategorias();
+            const cat = categorias.find(c => c.id === id);
+            if (!cat) return;
+            
+            document.getElementById('edit-cat-id-original').value = id;
+            document.getElementById('edit-cat-id').value = id;
+            document.getElementById('edit-cat-nombre').value = cat.nombre;
+            document.getElementById('edit-cat-desc').value = cat.descripcion || '';
+            
+            // Establecer icono
+            iconoEditSeleccionado = cat.icono;
+            document.getElementById('edit-cat-icono-input').value = cat.icono;
+            document.getElementById('edit-selected-icon-display').textContent = cat.icono;
+            document.querySelector('#edit-icon-trigger .icon-trigger-text').textContent = cat.icono;
+            
+            // Marcar icono seleccionado
+            document.querySelectorAll('#edit-icon-dropdown .icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.textContent === cat.icono) {
+                    opt.classList.add('selected');
+                }
+            });
+            
+            document.getElementById('modal-editar-cat').style.display = 'block';
+        }
+
+        function guardarEdicionCategoria() {
+            const id = document.getElementById('edit-cat-id-original').value;
+            const nombre = document.getElementById('edit-cat-nombre').value.trim();
+            const icono = iconoEditSeleccionado;
+            const desc = document.getElementById('edit-cat-desc').value.trim();
+            
+            if (!nombre) {
+                mostrarNotificacion('El nombre es obligatorio', 'error');
+                return;
+            }
+            
+            if (editarCategoria(id, nombre, icono, desc)) {
+                cerrarModalCat();
+                cargarCategoriasAdmin();
+            }
+        }
+
+        function cerrarModalCat() {
+            document.getElementById('modal-editar-cat').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal-editar-cat');
+            if (event.target === modal) {
+                cerrarModalCat();
+            }
+        }
+    </script>
+</body>
+</html>
